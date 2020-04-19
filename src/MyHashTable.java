@@ -1,4 +1,3 @@
-package FinalProject_Template;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -18,6 +17,15 @@ public class MyHashTable<K,V> implements Iterable<HashPair<K,V>>{
     // constructor
     public MyHashTable(int initialCapacity) {
         // ADD YOUR CODE BELOW THIS
+//        The constructor MyHashTable() which takes an int as input representing the initial
+//        capacity of the table.1 Using the input, the constructor initializes all the elds.
+//
+//        1The capacity is the number of buckets in the hash table, and the initial capacity is simply the capacity at the
+//        time the hash table is created.
+        this.buckets = null;
+        this.numBuckets = initialCapacity;
+        this.numEntries = 0;
+
         
         //ADD YOUR CODE ABOVE THIS
     }

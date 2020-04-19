@@ -1,4 +1,3 @@
-package FinalProject_Template;
 
 public class HashPair<K,V> {
     private K key;
