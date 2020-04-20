@@ -1,5 +1,6 @@
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 
@@ -17,16 +18,16 @@ public class MyHashTable<K,V> implements Iterable<HashPair<K,V>>{
     // constructor
     public MyHashTable(int initialCapacity) {
         // ADD YOUR CODE BELOW THIS
-//        The constructor MyHashTable() which takes an int as input representing the initial
-//        capacity of the table.1 Using the input, the constructor initializes all the elds.
-//
-//        1The capacity is the number of buckets in the hash table, and the initial capacity is simply the capacity at the
-//        time the hash table is created.
-        this.buckets = null;
-        this.numBuckets = initialCapacity;
-        this.numEntries = 0;
 
-        
+        this.buckets = new ArrayList<LinkedList<HashPair<K,V>>>(initialCapacity);
+        this.numBuckets = initialCapacity;
+        this.numEntries = (int) (initialCapacity * MAX_LOAD_FACTOR);
+
+        for (int i = 0; i < numBuckets; i++) {
+            // Initialising to null
+            this.buckets.add(null);
+        }
+
         //ADD YOUR CODE ABOVE THIS
     }
     
@@ -63,6 +64,8 @@ public class MyHashTable<K,V> implements Iterable<HashPair<K,V>>{
      */
     public V put(K key, V value) {
         //  ADD YOUR CODE BELOW HERE
+
+
     	
     	return null;
         
@@ -76,8 +79,21 @@ public class MyHashTable<K,V> implements Iterable<HashPair<K,V>>{
     
     public V get(K key) {
         //ADD YOUR CODE BELOW HERE
-        
-    	return null;
+
+//        for (HashPair hp: this) {
+//            if (hp.getKey().equals(key)) {
+//                return hp.getValue();
+//            }
+//        }
+
+        for (HashPair hashPair: this.buckets.get(hashFunction(key))) {
+            if (hashPair.getKey().equals(key)) {
+                return (V) hashPair.getValue();
+            }
+
+        }
+
+        return null;
     	
         //ADD YOUR CODE ABOVE HERE
     }
@@ -101,9 +117,83 @@ public class MyHashTable<K,V> implements Iterable<HashPair<K,V>>{
      * Expected average runtime is O(m), where m is the number of buckets
      */
     public void rehash() {
-        //ADD YOUR CODE BELOW HERE
-    	
+        //ADD YOUR CODE BELOW HERE 2In the slides we mention that these methods run in O(n + m) where n is the number of entries, and m is the
+        //number of buckets. Note that if you have a good hash function and a max load factor of 0.75, then this is equivalent
+        //to say that the method runs in O(m).
+
+        ArrayList<LinkedList<HashPair<K,V>>> temp = buckets;
+        buckets = new ArrayList<LinkedList<HashPair<K,V>>>(2 * this.numBuckets);
+
+        for (int i = 0; i < 2 * this.numBuckets; i++) {
+            buckets.add(null);
+        }
+
+        // Now size is made zero
+        // and we loop through all the nodes in the original bucket list(temp)
+        // and insert it into the new list
+        size = 0;
+        numBuckets *= 2;
+
+        for (int i = 0; i < temp.size(); i++) {
+
+            // head of the chain at that index
+            MapNode<K, V> head = temp.get(i);
+
+            while (head != null) {
+                K key = head.key;
+                V val = head.value;
+
+                // calling the insert function for each node in temp
+                // as the new list is now the bucketArray
+                insert(key, val);
+                head = head.next;
+            }
+        }
+
+
+
+        this.numBuckets *= 2;
+
+//FROM INTERNET:v
+//        System.out.println("\n***Rehashing Started***\n");
+//
+//        // The present bucket list is made temp
+//        ArrayList<MapNode<K, V> > temp = buckets;
+//
+//        // New bucketList of double the old size is created
+//        buckets = new ArrayList<MapNode<K, V> >(2 * numBuckets);
+//
+//        for (int i = 0; i < 2 * numBuckets; i++) {
+//            // Initialised to null
+//            buckets.add(null);
+//        }
+//        // Now size is made zero
+//        // and we loop through all the nodes in the original bucket list(temp)
+//        // and insert it into the new list
+//        size = 0;
+//        numBuckets *= 2;
+//
+//        for (int i = 0; i < temp.size(); i++) {
+//
+//            // head of the chain at that index
+//            MapNode<K, V> head = temp.get(i);
+//
+//            while (head != null) {
+//                K key = head.key;
+//                V val = head.value;
+//
+//                // calling the insert function for each node in temp
+//                // as the new list is now the bucketArray
+//                insert(key, val);
+//                head = head.next;
+//            }
+//        }
+//
+//        System.out.println("\n***Rehashing Ended***\n");
+
         //ADD YOUR CODE ABOVE HERE
+
+
     }
     
     
@@ -114,8 +204,14 @@ public class MyHashTable<K,V> implements Iterable<HashPair<K,V>>{
     
     public ArrayList<K> keys() {
         //ADD YOUR CODE BELOW HERE
+        ArrayList<K> keyList = new ArrayList<>(numBuckets);
+        for (LinkedList<HashPair<K,V>> linkedList : this.buckets) {
+            for (HashPair<K,V> hashPair: linkedList) {
+                keyList.add(hashPair.getKey());
+            }
+        }
         
-    	return null;
+    	return keyList;
     	
         //ADD YOUR CODE ABOVE HERE
     }
@@ -126,9 +222,15 @@ public class MyHashTable<K,V> implements Iterable<HashPair<K,V>>{
      */
     public ArrayList<V> values() {
         //ADD CODE BELOW HERE
-        
-    	return null;
-    	
+
+        ArrayList<K> valuesList = new ArrayList<>(numBuckets);
+        for (LinkedList<HashPair<K,V>> linkedList : this.buckets) {
+            for (HashPair<K,V> hashPair: linkedList) {
+                valuesList.add(hashPair.getKey());
+            }
+        }
+
+        return valuesList;
         //ADD CODE ABOVE HERE
     }
     
@@ -170,6 +272,9 @@ public class MyHashTable<K,V> implements Iterable<HashPair<K,V>>{
 	 */
     
     public static <K, V extends Comparable<V>> ArrayList<K> fastSort(MyHashTable<K, V> results) {
+        //The method returns an ArrayList containing all the keys in the
+        //table, sorted in descending order based on the values they map to.
+
         //ADD CODE BELOW HERE
     	
     	return null;
