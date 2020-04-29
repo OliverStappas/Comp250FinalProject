@@ -1,9 +1,7 @@
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
-
 
 public class MyHashTable<K,V> implements Iterable<HashPair<K,V>>{
     // num of entries to the table
@@ -19,13 +17,13 @@ public class MyHashTable<K,V> implements Iterable<HashPair<K,V>>{
     public MyHashTable(int initialCapacity) {
         // ADD YOUR CODE BELOW THIS
 
-        this.buckets = new ArrayList<LinkedList<HashPair<K,V>>>(initialCapacity);
-        this.numBuckets = initialCapacity;
-        this.numEntries = (int) (initialCapacity * MAX_LOAD_FACTOR);
+        this.buckets = new ArrayList<>(initialCapacity);
+        this.numBuckets = Math.max(1,initialCapacity);
+        this.numEntries = 0;
 
         for (int i = 0; i < numBuckets; i++) {
             // Initialising to null
-            this.buckets.add(null);
+            this.buckets.add(new LinkedList<>());
         }
 
         //ADD YOUR CODE ABOVE THIS
@@ -54,6 +52,8 @@ public class MyHashTable<K,V> implements Iterable<HashPair<K,V>>{
      * Given a key, return the bucket position for the key. 
      */
     public int hashFunction(K key) {
+        if (numBuckets == 0) {
+        }
         int hashValue = Math.abs(key.hashCode())%this.numBuckets;
         return hashValue;
     }
@@ -64,11 +64,26 @@ public class MyHashTable<K,V> implements Iterable<HashPair<K,V>>{
      */
     public V put(K key, V value) {
         //  ADD YOUR CODE BELOW HERE
+        HashPair<K,V> hashPair = new HashPair<>(key, value);
 
+        int index = hashFunction(key);
 
-    	
-    	return null;
-        
+        if (!this.buckets.get(index).isEmpty()) {
+            for (HashPair<K,V> hPair : this.buckets.get(index)) {
+                if (hPair.getKey().equals(key)) {
+                    V oldValue = hPair.getValue();
+                    hPair.setValue(value);
+                    return  oldValue;
+                }
+            }
+        }
+        if ( (double) (this.numEntries + 1) / this.numBuckets > MAX_LOAD_FACTOR) {
+            this.rehash();
+        }
+        this.numEntries += 1;
+        this.buckets.get(hashFunction(key)).add(hashPair);
+        return null;
+
         //  ADD YOUR CODE ABOVE HERE
     }
     
@@ -80,15 +95,9 @@ public class MyHashTable<K,V> implements Iterable<HashPair<K,V>>{
     public V get(K key) {
         //ADD YOUR CODE BELOW HERE
 
-//        for (HashPair hp: this) {
-//            if (hp.getKey().equals(key)) {
-//                return hp.getValue();
-//            }
-//        }
-
-        for (HashPair hashPair: this.buckets.get(hashFunction(key))) {
+        for (HashPair<K,V> hashPair: this.buckets.get(hashFunction(key))) {
             if (hashPair.getKey().equals(key)) {
-                return (V) hashPair.getValue();
+                return hashPair.getValue();
             }
 
         }
@@ -102,10 +111,26 @@ public class MyHashTable<K,V> implements Iterable<HashPair<K,V>>{
      * Remove the HashPair corresponding to key . Expected average runtime O(1) 
      */
     public V remove(K key) {
+        //A remove() method that takes a key as input and removes from the table the entry (i.e.
+        //the HashPair) associated to this key. The method should return the value associated to
+        //the key. If the key is not found, then the method returns null. This method should run
+        //in O(1) on average.
         //ADD YOUR CODE BELOW HERE
-        
-    	return null;
-    	
+
+        int index = hashFunction(key);
+
+
+        for (HashPair<K,V> hashPair : buckets.get(index)) {
+            if (hashPair.getKey().equals(key)) {
+                V value = hashPair.getValue();
+                buckets.get(index).remove(hashPair);
+                numEntries -= 1;
+                return value;
+            }
+        }
+
+        return null;
+
         //ADD YOUR CODE ABOVE HERE
     }
     
@@ -121,79 +146,23 @@ public class MyHashTable<K,V> implements Iterable<HashPair<K,V>>{
         //number of buckets. Note that if you have a good hash function and a max load factor of 0.75, then this is equivalent
         //to say that the method runs in O(m).
 
-        ArrayList<LinkedList<HashPair<K,V>>> temp = buckets;
-        buckets = new ArrayList<LinkedList<HashPair<K,V>>>(2 * this.numBuckets);
+        ArrayList<LinkedList<HashPair<K,V>>> oldBuckets = buckets;
+        buckets = new ArrayList<>(2 * this.numBuckets);
 
         for (int i = 0; i < 2 * this.numBuckets; i++) {
-            buckets.add(null);
+            buckets.add(new LinkedList<>());
         }
 
-        // Now size is made zero
-        // and we loop through all the nodes in the original bucket list(temp)
-        // and insert it into the new list
-        size = 0;
-        numBuckets *= 2;
+        this.numBuckets *= 2;
+        this.numEntries = 0;
 
-        for (int i = 0; i < temp.size(); i++) {
-
-            // head of the chain at that index
-            MapNode<K, V> head = temp.get(i);
-
-            while (head != null) {
-                K key = head.key;
-                V val = head.value;
-
-                // calling the insert function for each node in temp
-                // as the new list is now the bucketArray
-                insert(key, val);
-                head = head.next;
+        for (LinkedList<HashPair<K, V>> oldBucket : oldBuckets) {
+            for (HashPair<K, V> hashPair : oldBucket) {
+                put(hashPair.getKey(), hashPair.getValue());
             }
         }
 
-
-
-        this.numBuckets *= 2;
-
-//FROM INTERNET:v
-//        System.out.println("\n***Rehashing Started***\n");
-//
-//        // The present bucket list is made temp
-//        ArrayList<MapNode<K, V> > temp = buckets;
-//
-//        // New bucketList of double the old size is created
-//        buckets = new ArrayList<MapNode<K, V> >(2 * numBuckets);
-//
-//        for (int i = 0; i < 2 * numBuckets; i++) {
-//            // Initialised to null
-//            buckets.add(null);
-//        }
-//        // Now size is made zero
-//        // and we loop through all the nodes in the original bucket list(temp)
-//        // and insert it into the new list
-//        size = 0;
-//        numBuckets *= 2;
-//
-//        for (int i = 0; i < temp.size(); i++) {
-//
-//            // head of the chain at that index
-//            MapNode<K, V> head = temp.get(i);
-//
-//            while (head != null) {
-//                K key = head.key;
-//                V val = head.value;
-//
-//                // calling the insert function for each node in temp
-//                // as the new list is now the bucketArray
-//                insert(key, val);
-//                head = head.next;
-//            }
-//        }
-//
-//        System.out.println("\n***Rehashing Ended***\n");
-
         //ADD YOUR CODE ABOVE HERE
-
-
     }
     
     
@@ -204,14 +173,13 @@ public class MyHashTable<K,V> implements Iterable<HashPair<K,V>>{
     
     public ArrayList<K> keys() {
         //ADD YOUR CODE BELOW HERE
-        ArrayList<K> keyList = new ArrayList<>(numBuckets);
-        for (LinkedList<HashPair<K,V>> linkedList : this.buckets) {
-            for (HashPair<K,V> hashPair: linkedList) {
-                keyList.add(hashPair.getKey());
-            }
+
+        ArrayList<K> keysList = new ArrayList<>(this.numEntries);
+
+        for (HashPair<K,V> hashPair: this) {
+            keysList.add(hashPair.getKey());
         }
-        
-    	return keyList;
+    	return keysList;
     	
         //ADD YOUR CODE ABOVE HERE
     }
@@ -223,20 +191,26 @@ public class MyHashTable<K,V> implements Iterable<HashPair<K,V>>{
     public ArrayList<V> values() {
         //ADD CODE BELOW HERE
 
-        ArrayList<K> valuesList = new ArrayList<>(numBuckets);
-        for (LinkedList<HashPair<K,V>> linkedList : this.buckets) {
-            for (HashPair<K,V> hashPair: linkedList) {
-                valuesList.add(hashPair.getKey());
-            }
+        MyHashTable<V,K> valueTable = new MyHashTable<>(this.numEntries);
+
+        for (HashPair<K,V> hashPair: this) {
+            valueTable.put(hashPair.getValue(),hashPair.getKey());
+        }
+
+        ArrayList<V> valuesList = new ArrayList<>(valueTable.numEntries);
+
+        for (HashPair<V,K> hashPair: valueTable) {
+            valuesList.add(hashPair.getKey());
         }
 
         return valuesList;
+
         //ADD CODE ABOVE HERE
     }
     
     
 	/**
-	 * This method takes as input an object of type MyHashTable with values that 
+	 * This method takes as input an object of type MyHashTable with values that y
 	 * are Comparable. It returns an ArrayList containing all the keys from the map, 
 	 * ordered in descending order based on the values they mapped to. 
 	 * 
@@ -276,15 +250,55 @@ public class MyHashTable<K,V> implements Iterable<HashPair<K,V>>{
         //table, sorted in descending order based on the values they map to.
 
         //ADD CODE BELOW HERE
-    	
-    	return null;
-		
+        ArrayList<HashPair<K,V>> hashPairs =  new ArrayList<>(results.numEntries);
+        for (HashPair<K,V> hashPair: results) {
+            hashPairs.add(hashPair);
+        }
+
+        sortValuesDescending(hashPairs, 0, results.numEntries -1);
+
+        ArrayList<K> descendingKeys = new ArrayList<>(results.numEntries);
+        for (HashPair<K,V> hashPair: hashPairs) {
+            descendingKeys.add(hashPair.getKey());
+        }
+        return descendingKeys;
         //ADD CODE ABOVE HERE
     }
 
-    
-    
-    
+    private static <K, V extends Comparable<V>> void sortValuesDescending(ArrayList<HashPair<K,V>> hashPairs, int leftIndex, int rightIndex) {
+        int pivotIndex;
+        if (!(leftIndex >= rightIndex)) {
+            pivotIndex = placeAndDivide(hashPairs, leftIndex, rightIndex);
+            sortValuesDescending(hashPairs, leftIndex, pivotIndex - 1);
+            sortValuesDescending(hashPairs, pivotIndex + 1, rightIndex);
+        }
+    }
+
+    private static <K, V extends Comparable<V>> int placeAndDivide(ArrayList<HashPair<K,V>> hashPairs, int leftIndex, int rightIndex) {
+        HashPair<K,V> pivot = hashPairs.get(rightIndex);
+        int wall = leftIndex - 1;
+
+        for (int i = leftIndex; i < rightIndex; i++) {
+            if (hashPairs.get(i).getValue().compareTo(pivot.getValue()) > 0) {
+                wall ++;
+                swap(hashPairs, i, wall);
+
+            }
+        }
+        swap(hashPairs, rightIndex, wall + 1);
+        return wall + 1;
+    }
+
+    private static <K, V extends Comparable<V>> void swap(ArrayList<HashPair<K,V>> hashPairs, int indexOne, int indexTwo) {
+        HashPair<K,V> temp = hashPairs.get(indexOne);
+        hashPairs.set(indexOne, hashPairs.get(indexTwo));
+        hashPairs.set(indexTwo, temp);
+    }
+
+
+
+
+
     @Override
     public MyHashIterator iterator() {
         return new MyHashIterator();
@@ -292,14 +306,22 @@ public class MyHashTable<K,V> implements Iterable<HashPair<K,V>>{
     
     private class MyHashIterator implements Iterator<HashPair<K,V>> {
         //ADD YOUR CODE BELOW HERE
+        Iterator<HashPair<K,V>> hashPairIterator;
     	
-        //ADD YOUR CODE ABOVE HERE
+        //ADD YOUR CODE ABOVE HERENoSuchElementException
     	
     	/**
     	 * Expected average runtime is O(m) where m is the number of buckets
     	 */
         private MyHashIterator() {
             //ADD YOUR CODE BELOW HERE
+
+            ArrayList<HashPair<K,V>> hashPairs = new ArrayList<>();
+            for (LinkedList<HashPair<K,V>> linkedList: buckets) {
+                hashPairs.addAll(linkedList);
+            }
+            this.hashPairIterator = hashPairs.iterator();
+
         	
             //ADD YOUR CODE ABOVE HERE
         }
@@ -310,9 +332,7 @@ public class MyHashTable<K,V> implements Iterable<HashPair<K,V>>{
          */
         public boolean hasNext() {
             //ADD YOUR CODE BELOW HERE
-        	
-        	return false;
-        	
+            return this.hashPairIterator.hasNext();
             //ADD YOUR CODE ABOVE HERE
         }
         
@@ -322,9 +342,8 @@ public class MyHashTable<K,V> implements Iterable<HashPair<K,V>>{
          */
         public HashPair<K,V> next() {
             //ADD YOUR CODE BELOW HERE
-        	
-        	return null;
-        	
+
+        	return this.hashPairIterator.next();
             //ADD YOUR CODE ABOVE HERE
         }
         
